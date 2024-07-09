@@ -47,7 +47,10 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-int Counter_Flag_TIM3=0,Frequency_Light=20,Frequency_Sound=20,Value_Light=5,Value_Sound=5,Counter_Flag_TIM4=0,Signal_Set_Light=0,Signal_Set_Sound=0;
+int Counter_Flag_Light=0,Counter_Flag_Sound=0,Frequency_Light,
+Frequency_Sound,Value_Light=5,Value_Sound=5,Counter_Flag_TIM4=0;
+double Set_LightFrequency=40,Set_SoundFrequency=40;
+bool Signal_Set_Light=0,Signal_Set_Sound=0;
 int Time_Left=3600,State=0,Menu_State=0;
 /* USER CODE END PV */
 
@@ -79,7 +82,8 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-
+  Frequency_Light=(int)(13730/Set_LightFrequency);
+  Frequency_Sound=(int)(13730/Set_SoundFrequency);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -92,11 +96,11 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_I2C1_Init();
+  MX_TIM2_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
-  MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
   OLED_Init();
   OLED_DisPlay_On();
@@ -162,9 +166,9 @@ void Display(){
   OLED_NewFrame();
   if (!Menu_State)
   {
-    OLED_PrintString(0,0,"光频率:%d",Frequency_Light,&font12x12,OLED_COLOR_NORMAL);
-    OLED_PrintString(0,12,"声频率:%d",Frequency_Sound,&font12x12,OLED_COLOR_NORMAL);
-    OLED_PrintString(0,24,"光强度:%d",Value_Light,&font12x12,OLED_COLOR_NORMAL);
+    OLED_PrintString(0,0,"光频�?:%d",Frequency_Light,&font12x12,OLED_COLOR_NORMAL);
+    OLED_PrintString(0,12,"声频�?:%d",Frequency_Sound,&font12x12,OLED_COLOR_NORMAL);
+    OLED_PrintString(0,24,"光强�?:%d",Value_Light,&font12x12,OLED_COLOR_NORMAL);
     OLED_PrintString(0,36,"音量:%d",Value_Sound,&font12x12,OLED_COLOR_NORMAL);
     OLED_PrintString(0,48,"剩余工作时间:%d",Time_Left,&font12x12,OLED_COLOR_NORMAL);
   } else
@@ -173,13 +177,13 @@ void Display(){
     switch (State)
     {
       case 0:
-        OLED_PrintString(0,12,"光频率:%d",Frequency_Light,&font12x12,OLED_COLOR_NORMAL);
+        OLED_PrintString(0,12,"光频�?:%d",Frequency_Light,&font12x12,OLED_COLOR_NORMAL);
         break;
       case 1:
-        OLED_PrintString(0,12,"声频率:%d",Frequency_Sound,&font12x12,OLED_COLOR_NORMAL);
+        OLED_PrintString(0,12,"声频�?:%d",Frequency_Sound,&font12x12,OLED_COLOR_NORMAL);
         break;
       case 2:
-        OLED_PrintString(0,12,"光强度:%d",Value_Light,&font12x12,OLED_COLOR_NORMAL);
+        OLED_PrintString(0,12,"光强�?:%d",Value_Light,&font12x12,OLED_COLOR_NORMAL);
         break;
       case 3:
         OLED_PrintString(0,12,"音量:%d",Value_Sound,&font12x12,OLED_COLOR_NORMAL);
@@ -202,26 +206,31 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
      HAL_PWR_EnterSTANDBYMode(); 
     }
   }
-  if (htim==htim3)
+  if (htim==htim3)//htim3的周期：7.28*1e-5s
   {
-    Counter_Flag_TIM3++;
-    if (Counter_Flag_TIM3>=Frequency_Light)
+    Counter_Flag_Light++;
+    Counter_Flag_Sound++;
+    if (Counter_Flag_Light>(int)(0.2*Frequency_Light))
     {
       Signal_Set_Light=0;
     } else
     {
       Signal_Set_Light=1;
     }
-    if (Counter_Flag_TIM3>=Frequency_Sound)
+    if (Counter_Flag_Sound>(int)(0.2*Frequency_Sound))
     {
       Signal_Set_Sound=0;
     } else
     {
       Signal_Set_Sound=1;
     }
-    if (Counter_Flag_TIM3==40)
+    if (Counter_Flag_Light==Frequency_Light)
     {
-      Counter_Flag_TIM3=0;
+      Counter_Flag_Light=0;
+    }
+    if (Counter_Flag_Sound==Frequency_Sound)
+    {
+      Counter_Flag_Sound=0;
     }
   }
   if (htim==htim4)
@@ -252,46 +261,54 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   {
     switch (State)
     {
-    case 0:
-      Frequency_Light++;
-      break;
-    case 1:
-      Frequency_Sound++;
-      break;
-    case 2:
-      Value_Light++;
-      break;
-    case 3:
-      Value_Sound++;
-      break;
-    case 3:
-      Time_Left++;
-      break;
-    default:
-      break;
+      case 0:
+        Set_LightFrequency+=0.1;
+        Set_LightFrequency>40?40:Set_LightFrequency;
+        break;
+      case 1:
+        Set_SoundFrequency+=0.1;
+        Set_SoundFrequency>40?40:Set_SoundFrequency;
+        break;
+      case 2:
+        Value_Light++;
+        Value_Light>10?10:Value_Light;
+        break;
+      case 3:
+        Value_Sound++;
+        Value_Sound>10?10:Value_Sound;
+        break;
+      case 3:
+        Time_Left++;
+        break;
+      default:
+        break;
     }
   }
   if (GPIO_Pin==GPIO_PIN_5&&Menu_State)
   {
     switch (State)
     {
-    case 0:
-      Frequency_Light--;
-      break;
-    case 1:
-      Frequency_Sound--;
-      break;
-    case 2:
-      Value_Light--;
-      break;
-    case 3:
-      Value_Sound--;
-      break;
-    case 3:
-      Time_Left--;
-      break;
-    default:
-      break;
+      case 0:
+        Set_LightFrequency-=0.1;
+        Set_LightFrequency<37?37:Set_LightFrequency;
+        break;
+      case 1:
+        Set_SoundFrequency-=0.1;
+        Set_SoundFrequency<37>?37:Set_SoundFrequency;
+        break;
+      case 2:
+        Value_Light--;
+        Value_Light<0?0:Value_Light;
+        break;
+      case 3:
+        Value_Sound--;
+        Value_Sound<0?0:Value_Sound;
+        break;
+      case 3:
+        Time_Left--;
+        break;
+      default:
+        break;
     }
   }
   if (GPIO_Pin==GPIO_PIN_6&&Menu_State)
@@ -308,6 +325,8 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin){
   {
     Menu_State=!Menu_State;
   }
+  Frequency_Light=(int)(13730/Set_LightFrequency);
+  Frequency_Sound=(int)(13730/Set_SoundFrequency);
 }
 /* USER CODE END 4 */
 
