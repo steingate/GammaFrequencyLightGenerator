@@ -105,8 +105,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  OLED_Init();
-  OLED_DisPlay_On();
+  //OLED_Init();
+  //OLED_DisPlay_On();
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
@@ -116,7 +116,7 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    Display();
+    //Display();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -164,6 +164,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+/*
 void Display(){
   OLED_NewFrame();
   if (!Menu_State)
@@ -215,6 +216,7 @@ void Display(){
   }
   OLED_ShowFrame();
 }
+*/
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
   if (htim->Instance==TIM2)
   {
