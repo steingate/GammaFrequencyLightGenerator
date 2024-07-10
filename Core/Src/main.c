@@ -27,7 +27,9 @@
 /* USER CODE BEGIN Includes */
 #include "stdint-gcc.h"
 #include "oled.h"
-#include <stdio.h>
+#include "stdio.h"
+#include <string.h>
+#include <stdlib.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,12 +57,13 @@ int Signal_Set_Light=0,Signal_Set_Sound=0;
 int Time_Left=3600,State=0,Menu_State=0;
 uint_fast32_t Last_Tick=0;
 int Func=18260;
+char UART_str[80]="\0";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 /* USER CODE BEGIN PFP */
-
+void Bluetooth_Init();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -107,9 +110,11 @@ int main(void)
   /* USER CODE BEGIN 2 */
   //OLED_Init();
   //OLED_DisPlay_On();
+  //Bluetooth_Init();
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
+  HAL_UART_Receive_IT(&huart1,UART_str,30);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -164,6 +169,122 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+void BTDecode(){
+  char *tmp=strstr(UART_str,"Display");
+  if (tmp!=NULL)
+  {
+    char str[180],at_str[30];
+    sprintf(str,"LightFrequency:%lf\r\nSoundFrequency:%lf\r\nLightValue:%d\r\nSoundValue:%d\r\nTimeLeft:%d\r\n",Set_LightFrequency,Set_SoundFrequency,Value_Light,Value_Sound,Time_Left);
+    sprintf(at_str,"AT+SEND=0,%d",sizeof(str));
+    HAL_UART_Transmit(&huart1,at_str,sizeof(at_str),50);
+    HAL_UART_Transmit(&huart1,str,sizeof(str),50);
+    HAL_UART_Transmit(&huart1,"+++",sizeof("+++"),50);
+    return;
+  }
+  tmp=strstr(UART_str,"LightFrequency");
+  if (tmp!=NULL)
+  {
+    Set_LightFrequency=atof(tmp+14*sizeof(char));
+    Frequency_Light=(int)(Func/Set_LightFrequency);
+    return;
+  }
+  tmp=strstr(UART_str,"SoundFrequency");
+  if (tmp!=NULL)
+  {
+    Set_SoundFrequency=atof(tmp+14*sizeof(char));
+    Frequency_Sound=(int)(Func/Set_SoundFrequency);
+    return;
+  }
+  tmp=strstr(UART_str,"LightValue");
+  if (tmp!=NULL)
+  {
+    Value_Light=atoi(tmp+10*sizeof(char));
+    return;
+  }
+  tmp=strstr(UART_str,"SoundValue");
+  if (tmp!=NULL)
+  {
+    Value_Sound=atoi(tmp+10*sizeof(char));
+    return;
+  }
+  tmp=strstr(UART_str,"WorkTime");
+  if (tmp!=NULL)
+  {
+    Time_Left=atoi(tmp+8*sizeof(char));
+    return;
+  }
+}
+void Decode(){
+  char *tmp=strstr(UART_str,"BTDATA");
+  if (tmp!=NULL)
+  {
+    BTDecode();
+  }
+  
+}
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
+  if (huart==&huart1)
+  {
+    Decode();
+  }
+  memset(UART_str,0,sizeof(UART_str));
+  HAL_UART_Receive_IT(&huart1,UART_str,30);
+}
+/*暂时弃用
+void Bluetooth_Init(){
+  HAL_Delay(10000);
+  HAL_UART_Transmit(&huart1,"ATE0\r\n",sizeof("ATE0\r\n"),50);
+  HAL_Delay(2000);
+  HAL_UART_Transmit(&huart1,"AT+BTINIT=1\r\n",sizeof("AT+BTINIT=1\r\n"),50);
+  HAL_UART_Receive(&huart1,UART_str,80,2000);
+  if (strcmp(UART_str,"\r\nOK\r\n")!=0)
+  {
+    HAL_UART_Transmit(&huart2,"BT_Init_Error\r\n",sizeof("BT_Init_Error\r\n"),50);
+    return;
+  }
+  HAL_UART_Transmit(&huart1,"AT+BTNAME=\"SteinGate-AT\"\r\n",sizeof("AT+BTNAME=\"SteinGate-AT\"\r\n"),50);
+  memset(UART_str,0,sizeof(UART_str));
+  HAL_UART_Receive(&huart1,UART_str,80,2000);
+  if (strcmp(UART_str,"\r\nOK\r\n")!=0)
+  {
+    HAL_UART_Transmit(&huart2,"BT_NameSet_Error\r\n",sizeof("BT_NameSet_Error\r\n"),50);
+    return;
+  }
+  HAL_UART_Transmit(&huart1,"AT+BTSCANMODE=2\r\n",sizeof("AT+BTSCANMODE=2\r\n"),50);
+  memset(UART_str,0,sizeof(UART_str));
+  HAL_UART_Receive(&huart1,UART_str,80,2000);
+  if (strcmp(UART_str,"\r\nOK\r\n")!=0)
+  {
+    HAL_UART_Transmit(&huart2,"BT_ScanModeSet_Error\r\n",sizeof("BT_ScanModeSet_Error\r\n"),50);
+    return;
+  }
+  HAL_UART_Transmit(&huart1,"AT+BTSPPINIT=2\r\n",sizeof("AT+BTSPPINIT=2\r\n"),50);
+  memset(UART_str,0,sizeof(UART_str));
+  HAL_UART_Receive(&huart1,UART_str,80,2000);
+  if (strcmp(UART_str,"\r\nOK\r\n")!=0)
+  {
+    HAL_UART_Transmit(&huart2,"BT_PPSInit_Error\r\n",sizeof("BT_PPSInit_Error\r\n"),50);
+    return;
+  }
+  HAL_UART_Transmit(&huart1,"AT+BTSPPSTART\r\n",sizeof("AT+BTSPPSTART\r\n"),50);
+  memset(UART_str,0,sizeof(UART_str));
+  HAL_UART_Receive(&huart1,UART_str,80,2000);
+  if (strcmp(UART_str,"\r\nOK\r\n")!=0)
+  {
+    HAL_UART_Transmit(&huart2,"BT_PPSStart_Error\r\n",sizeof("BT_PPSStart_Error\r\n"),50);
+    return;
+  }
+  HAL_UART_Transmit(&huart1,"BT_WaitForConnect\r\n",sizeof("BT_WaitForConnect\r\n"),50);
+  if (strcmp(UART_str,"+BTSPPCONN:0,\"38:c6:bd:9e:44:7c\"\r\n")!=0)
+  {
+    HAL_UART_Transmit(&huart1,"BT_Connect_Error\r\n",sizeof("BT_Connect_Error\r\n"),50);
+    return;
+  } else
+  {
+    HAL_UART_Transmit(&huart1,"BT_Connected\r\n",sizeof("BT_Connected\r\n"),50);
+  }
+}
+*/
 /*
 void Display(){
   OLED_NewFrame();
