@@ -114,13 +114,17 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   HAL_TIM_Base_Start_IT(&htim4);
-  HAL_UART_Receive_IT(&huart1,UART_str,30);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+    if (HAL_UART_GetState(&huart1)==HAL_UART_STATE_READY)
+    {
+      HAL_UART_Receive_IT(&huart1,UART_str,30);
+    }
+    
     //Display();
     /* USER CODE END WHILE */
 
@@ -174,6 +178,8 @@ void BTDecode(){
   if (tmp!=NULL)
   {
     char str[180],at_str[30];
+    memset(str,0,sizeof(str));
+    memset(at_str,0,sizeof(at_str));
     sprintf(str,"LightFrequency:%lf\r\nSoundFrequency:%lf\r\nLightValue:%d\r\nSoundValue:%d\r\nTimeLeft:%d\r\n",Set_LightFrequency,Set_SoundFrequency,Value_Light,Value_Sound,Time_Left);
     sprintf(at_str,"AT+SEND=0,%d",sizeof(str));
     HAL_UART_Transmit(&huart1,at_str,sizeof(at_str),50);
@@ -228,7 +234,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
     Decode();
   }
   memset(UART_str,0,sizeof(UART_str));
-  HAL_UART_Receive_IT(&huart1,UART_str,30);
+  //HAL_UART_Receive_IT(&huart1,UART_str,30);
 }
 /*暂时弃用
 void Bluetooth_Init(){
