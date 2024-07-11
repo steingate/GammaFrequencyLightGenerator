@@ -180,9 +180,11 @@ void BTDecode(){
     char str[180],at_str[30];
     memset(str,0,sizeof(str));
     memset(at_str,0,sizeof(at_str));
-    sprintf(str,"LightFrequency:%lf\r\nSoundFrequency:%lf\r\nLightValue:%d\r\nSoundValue:%d\r\nTimeLeft:%d\r\n",Set_LightFrequency,Set_SoundFrequency,Value_Light,Value_Sound,Time_Left);
-    sprintf(at_str,"AT+SEND=0,%d",sizeof(str));
+    sprintf(at_str,"AT+BTSPPSEND=0,%d\r\n",sizeof(str));
     HAL_UART_Transmit(&huart1,at_str,sizeof(at_str),50);
+    sprintf(str,"LightFrequency:%lf\r\nSoundFrequency:%lf\r\nLightValue:%d\r\nSoundValue:%d\r\nTimeLeft:%d\r\n",Set_LightFrequency,Set_SoundFrequency,Value_Light,Value_Sound,Time_Left);
+    uint16_t t=3127*200;
+    while(t--);
     HAL_UART_Transmit(&huart1,str,sizeof(str),50);
     HAL_UART_Transmit(&huart1,"+++",sizeof("+++"),50);
     return;
@@ -192,6 +194,7 @@ void BTDecode(){
   {
     Set_LightFrequency=atof(tmp+14*sizeof(char));
     Frequency_Light=(int)(Func/Set_LightFrequency);
+    HAL_UART_Transmit(&huart2,"LightFrequencySet",sizeof("LightFrequencySet"),50);
     return;
   }
   tmp=strstr(UART_str,"SoundFrequency");
@@ -199,24 +202,28 @@ void BTDecode(){
   {
     Set_SoundFrequency=atof(tmp+14*sizeof(char));
     Frequency_Sound=(int)(Func/Set_SoundFrequency);
+    HAL_UART_Transmit(&huart2,"SoundFrequencySet",sizeof("SoundFrequencySet"),50);
     return;
   }
   tmp=strstr(UART_str,"LightValue");
   if (tmp!=NULL)
   {
     Value_Light=atoi(tmp+10*sizeof(char));
+    HAL_UART_Transmit(&huart2,"LightValueSet",sizeof("LightValueSet"),50);
     return;
   }
   tmp=strstr(UART_str,"SoundValue");
   if (tmp!=NULL)
   {
     Value_Sound=atoi(tmp+10*sizeof(char));
+    HAL_UART_Transmit(&huart2,"SoundValueSet",sizeof("SoundValueSet"),50);
     return;
   }
   tmp=strstr(UART_str,"WorkTime");
   if (tmp!=NULL)
   {
     Time_Left=atoi(tmp+8*sizeof(char));
+    HAL_UART_Transmit(&huart2,"TimeLeftSet",sizeof("TimeLeftSet"),50);
     return;
   }
 }
