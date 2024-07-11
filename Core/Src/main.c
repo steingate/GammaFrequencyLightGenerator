@@ -108,8 +108,8 @@ int main(void)
   MX_USART2_UART_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  //OLED_Init();
-  //OLED_DisPlay_On();
+  OLED_Init();
+  OLED_DisPlay_On();
   //Bluetooth_Init();
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
@@ -243,7 +243,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart){
   memset(UART_str,0,sizeof(UART_str));
   //HAL_UART_Receive_IT(&huart1,UART_str,30);
 }
-/*暂时弃用
 void Bluetooth_Init(){
   HAL_Delay(10000);
   HAL_UART_Transmit(&huart1,"ATE0\r\n",sizeof("ATE0\r\n"),50);
@@ -297,8 +296,6 @@ void Bluetooth_Init(){
     HAL_UART_Transmit(&huart1,"BT_Connected\r\n",sizeof("BT_Connected\r\n"),50);
   }
 }
-*/
-/*
 void Display(){
   OLED_NewFrame();
   if (!Menu_State)
@@ -350,7 +347,6 @@ void Display(){
   }
   OLED_ShowFrame();
 }
-*/
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
   if (htim->Instance==TIM2)
   {
