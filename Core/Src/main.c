@@ -124,8 +124,7 @@ int main(void)
     {
       HAL_UART_Receive_IT(&huart1,UART_str,30);
     }
-    
-    //Display();
+    Display();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -222,7 +221,8 @@ void BTDecode(){
   tmp=strstr(UART_str,"WorkTime");
   if (tmp!=NULL)
   {
-    Time_Left=atoi(tmp+8*sizeof(char));
+    int tmp_v=(*(tmp+8)-'0')*10000+(*(tmp+9)-'0')*1000+(*(tmp+10)-'0')*100+(*(tmp+11)-'0')*10+(*(tmp+12)-'0');
+    Time_Left=tmp_v;
     HAL_UART_Transmit(&huart2,"TimeLeftSet",sizeof("TimeLeftSet"),50);
     return;
   }
@@ -353,14 +353,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
     Time_Left--;
     if (!Time_Left)
     {
-     HAL_PWR_EnterSTANDBYMode(); 
+      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_4,GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOB,GPIO_PIN_5,GPIO_PIN_RESET);
+      HAL_PWR_EnterSTANDBYMode(); 
     }
   }
   if (htim->Instance==TIM3)//htim3的周期：7.28*1e-5s
   {
     Counter_Flag_Light++;
     Counter_Flag_Sound++;
-    if (Counter_Flag_Light>(int)(0.5*Frequency_Light))
+    if (Counter_Flag_Light>(int)(0.2*Frequency_Light))
     {
       Signal_Set_Light=0;
     } else
